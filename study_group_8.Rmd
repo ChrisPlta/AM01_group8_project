@@ -106,6 +106,7 @@ details <- details %>%
   mutate(store = as.factor(store),
          # Change date format
          date = dmy(date),
+         # Remove NAs in mark_downs
          mark_down1 = replace_na(mark_down1,0),
          mark_down2 = replace_na(mark_down2,0),
          mark_down3 = replace_na(mark_down3,0),
@@ -120,6 +121,14 @@ details <- details %>%
 skim(stores)
 glimpse(stores)
 head(stores)
+
+```
+```{r clean_stores_data}
+
+# Change store ID and dept to factor
+stores <- stores %>% 
+  mutate(store = as.factor(store),
+         type = as.factor(type))
 
 ```
 
