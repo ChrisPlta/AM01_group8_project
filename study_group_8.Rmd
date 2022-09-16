@@ -127,9 +127,8 @@ head(stores)
 
 # Change store ID and dept to factor
 stores <- stores %>% 
-  mutate(store = as.factor(store),
-         type = as.factor(type))
-
+  mutate(store = factor(store),
+         type = factor(type, levels = c("A","B","C")))
 ```
 
 ```{r join_dataframes}
@@ -180,26 +179,25 @@ stores %>%
 
 ```{r sales_overview_2011}
 
-# Calculate weeks between min and max date for both data frames
+# Calculate store with most sales in 2011
 sales %>% 
+  # Select relevant time frame
   filter(date >= "2011-01-07" & date <= "2011-12-30") %>% 
   group_by(store) %>% 
+  # Calculate summary statistics
   summarize(annl_sales = sum(weekly_sales),
-            avg_wkly_sales = annl_sales/difftime("2011-01-07","2011-12-30", unit = "weeks")) %>% 
-            arrange(desc(by = annl_sales))
+            avg_wkly_sales = mean(weekly_sales)) %>% 
+            slice_max(annl_sales, n = 1)
 
 ```
 
 ```{r distribution_plot_sales}
 
-# Plot distribution of sales
 joined_sales %>% 
-  ggplot(aes(x = weekly_sales)) +
-    geom_density() +
-    labs(title = "",
-         subtitle = "",
-         x = "",
-         y = "")
+  filter(weekly_sales >= 0) %>% 
+  mutate(log_wkly_sales = log(weekly_sales)) %>% 
+  ggplot(aes(x = log_wkly_sales)) +
+  geom_
 
 ```
 
