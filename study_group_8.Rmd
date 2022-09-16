@@ -41,6 +41,7 @@ library(broom)
 library(performance)
 library(car)
 library(lubridate)
+library(huxtable)
 ```
 
 ```{r set_global_theme}
@@ -373,7 +374,7 @@ joined_sales %>%
 ```{r Identify_Holidays}
 
 #glimpse(joined_sales)
-joined_sales <- joined_sales %>% 
+conf_joined_sales <- joined_sales %>% 
   #Split the date to get months so that we can identify the holidays
   mutate(year = year(date), 
          month = month(date, label = TRUE), 
@@ -392,7 +393,7 @@ joined_sales <- joined_sales %>%
 ## Differce in impact on sales on different holiday weeks
 ```{r Highest_sales_holiday}
 
-holiday_sales <- joined_sales %>% 
+holiday_sales <- conf_joined_sales %>% 
   #Filter the four holidays
 filter(is_holiday == TRUE) %>% 
   group_by(holiday) %>% 
@@ -414,7 +415,7 @@ The difference in average week sales between Thanksgiving and Labor day is 6368.
 
 ```{r T-test}
 #T-test for data without Thanksgiving
-joined_sales %>% 
+conf_joined_sales %>% 
   filter(holiday != "Thanksgiving") %>% 
   #Using T-test
   t.test(weekly_sales~is_holiday,.)
@@ -431,3 +432,128 @@ The difference of sales on holiday weeks and non-holiday weeks is not significan
 From the results of the t-test, when analyzing on the basis of weeks, we can see that the sales are highest in the week of Thanksgiving. The sales in the weeks of other occasions is not that differential. This could be following the trend that during holidays such as Christmas people tend to fly back home and buy gifts earlier. Hence, the sales could be higher when looking at monthly sales.
 
 # Regression
+
+We calculate the weekly sales by store, so that we won't have 1:n format for variables like temperature. We remove the variable store because it's not an explanatory variable. And for Markdown have too many missing variables, we don't include it in the model
+
+```{r, remove_store}
+
+sales_by_store <- joined_sales %>% 
+  mutate(type = as.factor(type)) %>% 
+  group_by(store,date) %>% 
+  summarize(weekly_sales = sum(weekly_sales)) %>% 
+  left_join(by = c("store","date"), y = details) %>% 
+  left_join(by = "store", y = stores) %>% 
+  mutate(type = as.factor(type)) %>% 
+  mutate(month = as.factor(month(date))) %>% 
+  # Identify the holidays and call normal day no holiday"
+  mutate(holiday = case_when(
+    (is_holiday == TRUE) & (month == 2) ~ "Super Bowl",
+    (is_holiday == TRUE) & (month == 9) ~ "Labor Day",
+    (is_holiday == TRUE) & (month == 11) ~ "Thanksgiving",
+    (is_holiday == TRUE) & (month == 12) ~ "Christmas",
+    (is_holiday == FALSE) ~ "No Holiday")) %>% 
+  mutate(holiday = as.factor(holiday))
+
+model0 <- lm(weekly_sales~.-store-month-is_holiday,data=sales_by_store)
+msummary(model0)
+vif(model0)
+
+```
+
+Look at the correlations between each variable, and add each variable one by one according to the correlation
+
+```{r correlation}
+
+ggpairs(sales_by_store[,c("weekly_sales","temperature","fuel_price","cpi","unemployment","size")])
+
+```
+
+First, we simply add size as a predictor, it's significant and explains huge amount of variability of the model.
+
+```{r model1}
+
+# Create regression for size
+model1 <- lm(weekly_sales~size,
+             data=sales_by_store)
+msummary(model1)
+
+```
+
+Next, we add back the observed holidays as a predictor.
+
+```{r model2}
+
+# Adding holidays back into the model
+model2 <- lm(weekly_sales~size+holiday,
+             data=sales_by_store)
+msummary(model2)
+
+```
+Next, we include the unemployment rate, which we would expect to affect consumer spending.
+
+```{r model3}
+
+# Add unemployment rate to the model
+model3 <- lm(weekly_sales~size+holiday+unemployment,
+             data=sales_by_store)
+msummary(model3)
+
+```
+As we have seen earlier, temperature seemed to have some effect on the sales of the stores. Let us see whether it is signficant in predicting sales.
+
+```{r model4}
+
+# Add temperature to the model
+model4 <- lm(weekly_sales~size+holiday+unemployment+temperature,
+             data=sales_by_store)
+msummary(model4)
+
+```
+Fuel price could also be a significant predictor, given that higher prices might cause consumers not to travel to further away stores, negatively affecting their sales.
+
+```{r model5}
+
+# Add fuel price to the plot
+model5 <- lm(weekly_sales~size+holiday+unemployment+temperature+fuel_price,
+             data=sales_by_store)
+msummary(model5)
+
+```
+
+While fuel price is at first not significant, after we add type and cpi, fuel price indeed significant.
+
+```{r model6}
+
+# Add type and cpi into the model
+model6 <- lm(weekly_sales~size+holiday+unemployment+cpi+temperature+type+fuel_price,
+             data=sales_by_store)
+msummary(model6)
+
+```
+
+Finally, we  summarize of all the models to make them comparable to one another.
+
+```{r final_model6}
+
+# Create summary table for all models - note that we have model0, so there will be model 7 in the table
+huxreg(model0, model1,  model2, model3, model4, model5, model6, 
+       statistics = c('#observations' = 'nobs', 
+                      'R squared' = 'r.squared', 
+                      'Adj. R Squared' = 'adj.r.squared', 
+                      'Residual SE' = 'sigma'), 
+       bold_signif = 0.05, 
+       stars = NULL
+)
+
+```
+Based on our model, we offer two answers to the questions posed in the instructions:
+
+a) A unit increase in temperature will cause a 1370 increase in sales. A unit increase in fuel_price will cause a 24900 decrease in sales.
+
+b) On average, we expect to generate 86600 revenues less in the Labor Day week than in the week of the Super Bowl
+
+```{r final}
+
+msummary(model6)
+
+```
