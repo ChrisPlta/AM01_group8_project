@@ -136,7 +136,7 @@ stores <- stores %>%
 
 # Join data frames together and assign to variable
 joined_sales <- sales %>% 
-  left_join(by = C("store","date"), y = details) %>% 
+  left_join(by = c("store","date"), y = details) %>% 
   left_join(by = "store", y = stores)
 
 ```
@@ -158,13 +158,25 @@ details %>%
 
 ```{r max_departments}
 
-# Calculate weeks between min and max date for both data frames
+# Calculate store with maximum departments  
 sales %>% 
   group_by(store) %>% 
-  n_distinct(dept) %>% 
-  slice_max(n, n = 1)
+  summarize(count_distinct = n_distinct(dept)) %>%
+  slice_max(count_distinct, n = 1)
 
 ```
+
+```{r check_store_types}
+
+# Calculate summary statistics for each store type
+stores %>% 
+  group_by(type) %>% 
+  summarize(min_items = min(size),
+            max_items = max(size),
+            average_items = mean(size))
+
+```
+
 
 ```{r sales_overview_2011}
 
