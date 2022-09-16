@@ -416,6 +416,7 @@ holiday_sales %>%
 The difference in average weekly sales between Thanksgiving and Labor day is 6368.
 
 ```{r T-test}
+
 #T-test for data without Thanksgiving
 conf_joined_sales %>% 
   filter(holiday != "Thanksgiving") %>% 
@@ -423,7 +424,7 @@ conf_joined_sales %>%
   t.test(weekly_sales~is_holiday,.)
 
 #T-test for data without Thanksgiving
-joined_sales %>% 
+conf_joined_sales %>% 
   filter((holiday == "Thanksgiving") | (holiday == "No Holiday")) %>% 
   #Using T-test
   t.test(weekly_sales~is_holiday,.)
