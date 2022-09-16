@@ -123,12 +123,21 @@ glimpse(stores)
 head(stores)
 
 ```
-```{r clean_stores_data}
+```{r clean_stores _data}
 
 # Change store ID and dept to factor
 stores <- stores %>% 
   mutate(store = as.factor(store),
          type = as.factor(type))
+
+```
+
+```{r join_dataframes}
+
+# Join data frames together and assign to variable
+joined_sales <- sales %>% 
+  left_join(by = C("store","date"), y = details) %>% 
+  left_join(by = "store", y = stores)
 
 ```
 
@@ -166,21 +175,6 @@ sales %>%
   summarize(annl_sales = sum(weekly_sales),
             avg_wkly_sales = annl_sales/difftime("2011-01-07","2011-12-30", unit = "weeks")) %>% 
             arrange(desc(by = annl_sales))
-
-```
-
-```{r join_dataframes}
-
-# Join data frames together and assign to variable
-joined_sales <- sales %>% 
-  left_join(by = C("store","date"), y = details) %>% 
-  left_join(by = "store", y = stores) %>% 
-  separate(store,
-           into = c("",""),
-           sep = "")
-
-sampled_joined <- joined_sales %>% 
-  sample_n(1000)
 
 ```
 
