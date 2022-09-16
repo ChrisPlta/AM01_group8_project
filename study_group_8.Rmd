@@ -99,6 +99,21 @@ head(details)
 
 ```
 
+```{r clean_details_data}
+
+# Change store ID and dept to factor
+details <- details %>% 
+  mutate(store = as.factor(store),
+         # Change date format
+         date = dmy(date),
+         mark_down1 = replace_na(mark_down1,0),
+         mark_down2 = replace_na(mark_down2,0),
+         mark_down3 = replace_na(mark_down3,0),
+         mark_down4 = replace_na(mark_down4,0),
+         mark_down5 = replace_na(mark_down5,0))
+
+```
+
 ```{r inspect_data_stores}
 
 # Inspect Sales data frame
