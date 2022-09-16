@@ -215,11 +215,15 @@ joined_sales %>%
   filter(weekly_sales >= 0) %>% 
   # Add log weekly_sales to account for skewness of graph and outliers
   mutate(log_wkly_sales = log(weekly_sales)) %>% 
-  ggplot(aes(x = log_wkly_sales)) +
+  ggplot(aes(x = log_wkly_sales, fill = type)) +
   geom_histogram() +
   facet_wrap(~ type) +
   # Set the limits of the x-axis
-  xlim(0,13)
+  xlim(0,13) +
+  labs(title = "After applying a log, observe a left-skewed distribution for all store types",
+       x = "Weekly Sales (logarithmic)",
+       y = "Count") +
+  theme(legend.position = "none")
 
 ```
 
@@ -269,28 +273,21 @@ joined_mean_med_hol %>%
 
 ```
 
-```{r distribution_plot_sales}
+```{r spread_by_store}
 
-joined_sales %>% 
-  filter(weekly_sales >= 0) %>% 
-  mutate(log_wkly_sales = log(weekly_sales)) %>% 
-  ggplot(aes(x = log_wkly_sales)) +
-  geom_histogram() +
-  facet_wrap(~type)
-
-
-```
-
-```{r spread_plot_sales}
-
-# Plot distribution of sales
+# Create plot for spread per store
 joined_sales %>% 
   group_by(store) %>% 
-  ggplot(aes(x = weekly_sales) +
-         geom_boxplot() +
-         facet_grid()
+  mutate(log_wkly_sales = log(weekly_sales)) %>% 
+  ggplot(aes(x = log_wkly_sales, y = store)) + 
+  geom_boxplot() +
+  labs(title = "The medians of log weekly sales for the stores are closely grouped together",
+       x = "Weekly Sales (logarithmic)",
+       y = "Store")
+
 
 ```
+
 # Inferential Statistics
 
 # Regression
