@@ -1,0 +1,91 @@
+---
+title: "Group8_Project"
+author: "Misha Aggarwal, Madalina Dumitrescu, Yung-Chieh Hsu, Wendy Li, Christoph Plachutta, Tianyi Zhang"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    theme: flatly
+    highlight: zenburn
+    number_sections: yes
+    toc: yes
+    toc_float: yes
+    code_folding: show
+---
+
+```{r, setup, echo=FALSE}
+knitr::opts_chunk$set(
+  message = FALSE, 
+  warning = FALSE, 
+  tidy=FALSE,     # display code as typed
+  size="small")   # slightly smaller font for code
+options(digits = 3)
+
+# default figure size
+knitr::opts_chunk$set(
+  fig.width=6.75, 
+  fig.height=6.75,
+  fig.align = "center"
+)
+```
+
+```{r load-libraries, echo=FALSE}
+library(tidyverse)  # Load ggplot2, dplyr, and all the other tidyverse packages
+library(mosaic)
+library(ggthemes)
+library(GGally)
+library(readxl)
+library(here)
+library(skimr)
+library(janitor)
+library(broom)
+library(performance)
+library(car)
+```
+
+# Exploratory Data Analysis
+
+```{r load_data}
+
+# Load data into environment and assign to variables
+sales <- vroom::vroom("sales.csv")
+details <- vroom::vroom("details.csv")
+stores <- vroom::vroom("stores.csv")
+
+```
+
+```{r clean_names}
+
+# Clean names of data frames
+sales <- janitor::clean_names(sales)
+details <- janitor::clean_names(details)
+stores <- janitor::clean_names(stores)
+
+```
+
+```{r inspect_data_sales}
+
+# Inspect Sales data frame
+skim(sales)
+glimpse(sales)
+
+```
+
+```{r inspect_data_details}
+
+# Inspect Sales data frame
+skim(details)
+glimpse(details)
+
+```
+
+```{r inspect_data_stores}
+
+# Inspect Sales data frame
+skim(stores)
+glimpse(stores)
+
+```
+
+# Inferential Statistics
+
+# Regression
