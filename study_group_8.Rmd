@@ -403,15 +403,17 @@ filter(is_holiday == TRUE) %>%
   holiday_sales
 ```
 
-Thanksgiving generates the highest weekly sales which is 22362.
+Thanksgiving generates the highest weekly sales among holiday weeks which is 22362.
 
 ```{r Sales Difference}
+
 holiday_sales %>% 
   filter( holiday %in% c("Thanksgiving", "Labor day")) %>% 
-   summarise(Name = "Values sales more than labor day", diff_sales = abs(diff(mean_weekly_sales)) )
+   summarise(Name = "Higher thanksgiving sales compared to labor day", diff_sales = abs(diff(mean_weekly_sales)))
+
 ```
 
-The difference in average week sales between Thanksgiving and Labor day is 6368.
+The difference in average weekly sales between Thanksgiving and Labor day is 6368.
 
 ```{r T-test}
 #T-test for data without Thanksgiving
@@ -427,7 +429,7 @@ joined_sales %>%
   t.test(weekly_sales~is_holiday,.)
 ```
 
-The difference of sales on holiday weeks and non-holiday weeks is not significant when filtering out Thanksgiving from the data since the P value from the T-test is greater than 5%. 
+The difference of sales on holiday weeks and non-holiday weeks is not significant when filtering out Thanksgiving from the data since the P value from the T-test is greater than 5%. However, when we look at the average weekly_sales in the week of thanksgiving, we can observe that 0 is not within the 95% confidence interval. We conclude with a 95% confidence that there truly is a difference in means between weekly sales in the Thanksgiving week vs non-holiday weeks.
 
 From the results of the t-test, when analyzing on the basis of weeks, we can see that the sales are highest in the week of Thanksgiving. The sales in the weeks of other occasions is not that differential. This could be following the trend that during holidays such as Christmas people tend to fly back home and buy gifts earlier. Hence, the sales could be higher when looking at monthly sales.
 
