@@ -191,6 +191,24 @@ joined_sales %>%
         geom_col()
 
 ```
+
+```{r  weekly sales by months in each year}
+
+#analysis of how weekly sales varies across months in every year
+joined_sales %>% 
+#extract year from date
+  mutate(year = year(date)) %>% 
+#extract month from date
+  mutate(month = as.factor(month(date))) %>% 
+#create histogram for weekly sales by month 
+  ggplot(aes(x = month, y = weekly_sales)) +
+  geom_col()+
+# facet the histogram by year
+  facet_wrap(~year) +
+  labs(title="Weekly Sales by month every year",x="Month",y="Weekly Sales")
+
+```
+
 When trying to find the store with the most sales in 2011, we isolate store 4, which is indeed categorized as type A. It is also one of the larger stores within type A. Therefore we can already assume that there is a correlation between size of a store and sales, which we will investigate next.
 
 ```{r sales_overview_2011}
@@ -203,9 +221,48 @@ sales %>%
   # Calculate summary statistics
   summarize(annl_sales = sum(weekly_sales),
             avg_wkly_sales = mean(weekly_sales)) %>% 
-            slice_max(annl_sales, n = 1)
+            slice_max(annl_sales, n = 2)
 
 ```
+
+The graph below supports our finding. Store 4 has the highest total sales, closely followed by 20. Type A stores have the highest overall sales, followed by type B and type C. However, there are 2 outliers in type A stores which are store 33 and 36. Both these stores have untypically low sales, which should be investigated.
+
+```{r sales_analysis_by_store_and_type}
+
+# Create plot to show total sales by store
+joined_sales %>% 
+  group_by(store, type) %>%
+  mutate(total_sales_by_store = sum(weekly_sales)) %>% 
+  ungroup() %>% 
+  mutate(store_n = fct_reorder(store, total_sales_by_store)) %>% 
+  ggplot(aes(x=store_n, y = total_sales_by_store, fill=type))+
+  geom_col()+
+  labs(title ="Stores total sales analysis between 2010-2012, classified by type",
+       x = "Store Number", 
+       y = "Total amount sold between 2010-2012")+
+  # Change scale y to show dollar amounts
+  scale_y_continuous(labels = scales::label_dollar())
+
+```
+
+Another variable we decided to look at is temperature. If stores have a certain type for other reasons than just size, temperature could hint at this. For example, we would expect stores carrying items typically related to summer to flourish in warmer temperatures. According to the graphs, for type B and C stores sales increases when temperature increases, and on the other hand for type A sales decreases when temperature increases. This could indicate that stores of type B and C sell items that are more tailored to warm temperatures.
+
+```{r temp_vs_weekly_sales}
+
+#analysis of how the temperature affects weekly sales by store 
+joined_sales %>% 
+  group_by(store) %>% 
+  #calculate average_weekly_sales_by_store and add it as a new column
+  mutate(mean_weekly_sales = mean(weekly_sales)) %>% 
+  ggplot(aes(x = temperature, y = mean_weekly_sales, color = type)) +
+  geom_smooth(method = "lm", se = FALSE) +
+  theme_bw()+
+  labs(title="Weekly sales of samller stores seem to be positively influenced by temperature",
+       x="Temperature",
+       y="Weekly Sales")
+
+```
+
 
 ```{r distribution_weekly_sales}
 
@@ -224,6 +281,27 @@ joined_sales %>%
        x = "Weekly Sales (logarithmic)",
        y = "Count") +
   theme(legend.position = "none")
+
+```
+
+Over the months in the year, the distribution of sales is also roughly the same for each year. In all years, the weekly sales are highest in March ,July and especially December. The most likely explanation is that there are important holiday in these months and people are more likely to spend more on these holiday. For example, Easter is in March (grociers for feasts), summer holiday is in July (shopping for travel items) and most importantly Christmas is in December (gifts).
+
+```{r  weekly_sales_by_months_year}
+
+#analysis of how weekly sales varies across months in every year
+joined_sales %>% 
+#extract year from date
+  mutate(year = year(date),
+         month = as.factor(month(date, label = TRUE))) %>% 
+#create histogram for weekly sales by month 
+  ggplot(aes(x = month, y = weekly_sales)) +
+  geom_col()+
+# facet the histogram by year
+  facet_wrap(~year) +
+  labs(title="The monthly sales follow the same distribution every year",
+       x="Month",
+       y="Weekly Sales") +
+  scale_y_continuous(labels = scales::label_dollar())
 
 ```
 
@@ -273,6 +351,8 @@ joined_mean_med_hol %>%
 
 ```
 
+We would also like to take a closer look at the spread of values for each store. We use the logarithmic sales on the axis to better visualize the data, given the high amount of outliers.
+
 ```{r spread_by_store}
 
 # Create plot for spread per store
@@ -289,5 +369,65 @@ joined_sales %>%
 ```
 
 # Inferential Statistics
+
+```{r Identify_Holidays}
+
+#glimpse(joined_sales)
+joined_sales <- joined_sales %>% 
+  #Split the date to get months so that we can identify the holidays
+  mutate(year = year(date), 
+         month = month(date, label = TRUE), 
+         week = week(date)) %>% 
+  # Identidy the holidays and call normal day "no holiday"
+  mutate(holiday = case_when(
+    (is_holiday == TRUE) & (month == "Dec") ~ "Christmas",
+    (is_holiday == TRUE) & (month == "Feb") ~ "Super Bowl",
+    (is_holiday == TRUE) & (month == "Nov") ~ "Thanksgiving",
+    (is_holiday == TRUE) & (month == "Sep") ~ "Labor day",
+    (is_holiday == FALSE) ~ "No Holiday"
+  ))
+  
+```
+
+## Differce in impact on sales on different holiday weeks
+```{r Highest_sales_holiday}
+
+holiday_sales <- joined_sales %>% 
+  #Filter the four holidays
+filter(is_holiday == TRUE) %>% 
+  group_by(holiday) %>% 
+  summarise(mean_weekly_sales = mean(weekly_sales)) %>% 
+  arrange(desc(mean_weekly_sales))
+
+  holiday_sales
+```
+
+Thanksgiving generates the highest weekly sales which is 22362.
+
+```{r Sales Difference}
+holiday_sales %>% 
+  filter( holiday %in% c("Thanksgiving", "Labor day")) %>% 
+   summarise(Name = "Values sales more than labor day", diff_sales = abs(diff(mean_weekly_sales)) )
+```
+
+The difference in average week sales between Thanksgiving and Labor day is 6368.
+
+```{r T-test}
+#T-test for data without Thanksgiving
+joined_sales %>% 
+  filter(holiday != "Thanksgiving") %>% 
+  #Using T-test
+  t.test(weekly_sales~is_holiday,.)
+
+#T-test for data without Thanksgiving
+joined_sales %>% 
+  filter((holiday == "Thanksgiving") | (holiday == "No Holiday")) %>% 
+  #Using T-test
+  t.test(weekly_sales~is_holiday,.)
+```
+
+The difference of sales on holiday weeks and non-holiday weeks is not significant when filtering out Thanksgiving from the data since the P value from the T-test is greater than 5%. 
+
+From the results of the t-test, when analyzing on the basis of weeks, we can see that the sales are highest in the week of Thanksgiving. The sales in the weeks of other occasions is not that differential. This could be following the trend that during holidays such as Christmas people tend to fly back home and buy gifts earlier. Hence, the sales could be higher when looking at monthly sales.
 
 # Regression
