@@ -179,15 +179,6 @@ sales %>%
 
 ```
 
-```{r}
-
-joined_sales %>% 
-  group_by(dept) %>% 
-  summarize(average_sales = mean(weekly_sales)) %>% 
-  arrange
-
-
-```
 To better understand the categorization of stores into their respective types, we investigate their correlated details. By graphing the size of the stores, colored by type, we can see that the size seems to be a significant indicator for a stores categorization. Nevertheless, we observe that some stores are very small, even though they are categorized in, for example, A.
 
 ```{r check_store_types}
@@ -200,7 +191,7 @@ joined_sales %>%
         geom_col()
 
 ```
-When trying to find the store with the most sales in 2011, we isolate store 4, which is indeed categorized as type A. It is also one of the larger stores within
+When trying to find the store with the most sales in 2011, we isolate store 4, which is indeed categorized as type A. It is also one of the larger stores within type A. Therefore we can already assume that there is a correlation between size of a store and sales, which we will investigate next.
 
 ```{r sales_overview_2011}
 
@@ -213,6 +204,68 @@ sales %>%
   summarize(annl_sales = sum(weekly_sales),
             avg_wkly_sales = mean(weekly_sales)) %>% 
             slice_max(annl_sales, n = 1)
+
+```
+
+```{r distribution_weekly_sales}
+
+# Create plot for distribution by store type
+joined_sales %>% 
+  # Remove days with negative weekly sales
+  filter(weekly_sales >= 0) %>% 
+  # Add log weekly_sales to account for skewness of graph and outliers
+  mutate(log_wkly_sales = log(weekly_sales)) %>% 
+  ggplot(aes(x = log_wkly_sales)) +
+  geom_histogram() +
+  facet_wrap(~ type) +
+  # Set the limits of the x-axis
+  xlim(0,13)
+
+```
+
+Of course, we would like to determine whether we have any correlations between the weekly sales and another predictive variable. When looking at the correlation coefficients, we notice that only "size" has a correlation of higher than 0.1 in absolute values, namely 0.240. This also informs us that no variable from the details dataframe seems to be correlated with the weekly sales.
+
+```{r sales_correlation}
+
+joined_sales %>% 
+  # Choose random sample from dataframe to make ggpairs run
+  sample_n(20000) %>%
+  # Select only the numeric values
+  select_if(is.numeric) %>% 
+  GGally::ggpairs()
+
+```
+
+Intuition tells us that a store would expect more sales during holiday weeks, rather than regular trading weeks. When we proceed to calculate the mean and median for holiday and non-holiday weeks and then subtract them from another, we see that only few stores have a lower mean weekly sales in holiday weeks. When we do the same for the median, we also see only few stores, however it concerns different stores than for the mean. 
+
+```{r mean_median_vs_holidays}
+
+# Calculate mean and median for holiday weeks
+mean_med_hol <- joined_sales %>% 
+  group_by(store) %>% 
+  filter (is_holiday == TRUE) %>% 
+  summarize(mean_sales_hol = mean(weekly_sales),
+            median_sales_hol = median(weekly_sales))
+
+# Calculate mean and median for normal trading weeks
+mean_med_not_hol <- joined_sales %>% 
+  group_by(store) %>% 
+  filter (is_holiday == FALSE) %>% 
+  summarize(mean_sales_not_hol = mean(weekly_sales),
+            median_sales_not_hol = median(weekly_sales))
+
+# Joined dataframes above to be able to calculate the difference
+joined_mean_med_hol <- mean_med_hol %>% 
+  left_join(by = "store", y = mean_med_not_hol) %>%
+  mutate(difference_mean = mean_sales_hol - mean_sales_not_hol,
+         difference_med = median_sales_hol - median_sales_not_hol)
+
+# Arrange the dataframe to see negative values for mean and median
+joined_mean_med_hol %>% 
+  arrange(difference_mean)
+
+joined_mean_med_hol %>% 
+  arrange(difference_med)
 
 ```
 
