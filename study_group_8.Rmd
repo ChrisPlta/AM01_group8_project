@@ -40,16 +40,24 @@ library(janitor)
 library(broom)
 library(performance)
 library(car)
+library(lubridate)
 ```
+
+```{r set_global_theme}
+
+theme_set(theme_bw())
+
+```
+
 
 # Exploratory Data Analysis
 
 ```{r load_data}
 
 # Load data into environment and assign to variables
-sales <- vroom::vroom("sales.csv")
-details <- vroom::vroom("details.csv")
-stores <- vroom::vroom("stores.csv")
+sales <- vroom::vroom("data/sales.csv")
+details <- vroom::vroom("data/details.csv")
+stores <- vroom::vroom("data/stores.csv")
 
 ```
 
@@ -67,14 +75,27 @@ stores <- janitor::clean_names(stores)
 # Inspect Sales data frame
 skim(sales)
 glimpse(sales)
+head(sales)
 
 ```
+```{r clean_sales_data}
+
+# Change store ID and dept to factor
+sales <- sales %>% 
+  mutate(store = as.factor(store),
+         dept = as.factor(dept),
+         # Change date format
+         date = dmy(date))
+
+```
+
 
 ```{r inspect_data_details}
 
 # Inspect Sales data frame
 skim(details)
 glimpse(details)
+head(details)
 
 ```
 
@@ -83,6 +104,7 @@ glimpse(details)
 # Inspect Sales data frame
 skim(stores)
 glimpse(stores)
+head(stores)
 
 ```
 
@@ -120,6 +142,45 @@ sales %>%
   summarize(annl_sales = sum(weekly_sales),
             avg_wkly_sales = annl_sales/difftime("2011-01-07","2011-12-30", unit = "weeks")) %>% 
             arrange(desc(by = annl_sales))
+
+```
+
+```{r join_dataframes}
+
+# Join data frames together and assign to variable
+joined_sales <- sales %>% 
+  left_join(by = C("store","date"), y = details) %>% 
+  left_join(by = "store", y = stores) %>% 
+  separate(store,
+           into = c("",""),
+           sep = "")
+
+sampled_joined <- joined_sales %>% 
+  sample_n(1000)
+
+```
+
+```{r distribution_plot_sales}
+
+# Plot distribution of sales
+joined_sales %>% 
+  ggplot(aes(x = weekly_sales)) +
+    geom_density() +
+    labs(title = "",
+         subtitle = "",
+         x = "",
+         y = "")
+
+```
+
+```{r spread_plot_sales}
+
+# Plot distribution of sales
+joined_sales %>% 
+  group_by(store) %>% 
+  ggplot(aes(x = weekly_sales) +
+         geom_boxplot() +
+         facet_grid()
 
 ```
 # Inferential Statistics
